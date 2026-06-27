@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD Gold Intelligence — Smart Money Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --gold:       #D4A017;
+    --gold-light: #F5C842;
+    --gold-dim:   #8B6914;
+    --bg:         #080A0E;
+    --surface:    #0D1117;
+    --panel:      #111820;
+    --panel2:     #161E28;
+    --border:     #1E2D3D;
+    --border2:    #243040;
+    --bull:       #00D084;
+    --bull-dim:   #004D30;
+    --bear:       #FF4560;
+    --bear-dim:   #5C0A1A;
+    --neutral:    #7B8FA6;
+    --text:       #C8D6E5;
+    --text-dim:   #4A6078;
+    --white:      #E8F0F8;
+    --amber:      #F5A623;
+    --purple:     #9B59B6;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── HEADER ──────────────────────────────────────── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #000;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; color: var(--white); letter-spacing: 0.5px; }
+  .logo-sub  { font-size: 11px; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+
+  .header-center { display: flex; align-items: center; gap: 24px; }
+
+  .price-hero {
+    text-align: center;
+  }
+  .price-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold-light);
+    letter-spacing: 1px;
+  }
+  .price-change {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .price-change.up   { color: var(--bull); }
+  .price-change.down { color: var(--bear); }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .pst-clock {
+    text-align: right;
+  }
+  .pst-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .pst-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .session-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .session-badge.active  { background: var(--bull-dim); color: var(--bull); border: 1px solid var(--bull); }
+  .session-badge.caution { background: #2D1F00; color: var(--amber); border: 1px solid var(--amber); }
+  .session-badge.closed  { background: #1A1A1A; color: var(--text-dim); border: 1px solid var(--border); }
+
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--gold);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .refresh-btn:hover { border-color: var(--gold); background: rgba(212,160,23,0.08); }
+
+  /* ─── LAYOUT ──────────────────────────────────────── */
+  .app-body { display: grid; grid-template-columns: 1fr 340px; gap: 0; height: calc(100vh - 60px); }
+
+  .main-col { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .side-col  { border-left: 1px solid var(--border); overflow-y: auto; background: var(--surface); display: flex; flex-direction: column; }
+
+  /* ─── ALERT BANNER ────────────────────────────────── */
+  .alert-banner {
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+  }
+  .alert-banner::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+  }
+  .alert-banner.buy  { background: rgba(0,208,132,0.06); border-color: var(--bull); }
+  .alert-banner.buy::before  { background: var(--bull); }
+  .alert-banner.sell { background: rgba(255,69,96,0.06); border-color: var(--bear); }
+  .alert-banner.sell::before { background: var(--bear); }
+  .alert-banner.wait { background: rgba(245,166,35,0.06); border-color: var(--amber); }
+  .alert-banner.wait::before { background: var(--amber); }
+
+  .alert-direction {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .alert-direction.buy  { color: var(--bull); }
+  .alert-direction.sell { color: var(--bear); }
+  .alert-direction.wait { color: var(--amber); }
+
+  .alert-meta { flex: 1; padding: 0 20px; }
+  .alert-reason { font-size: 13px; color: var(--white); font-weight: 500; }
+  .alert-sub    { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+
+  .alert-score {
+    text-align: right;
+  }
+  .score-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .score-val.buy  { color: var(--bull); }
+  .score-val.sell { color: var(--bear); }
+  .score-val.wait { color: var(--amber); }
+  .score-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ─── GRID PANELS ─────────────────────────────────── */
+  .panel-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .panel-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel2);
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+  }
+  .panel-badge {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .panel-body { padding: 14px; }
+
+  /* ─── TRADE SETTINGS ──────────────────────────────── */
+  .trade-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .trade-row:last-child { border-bottom: none; }
+  .trade-label { font-size: 12px; color: var(--text-dim); }
+  .trade-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--white);
+  }
+  .trade-value.bull { color: var(--bull); }
+  .trade-value.bear { color: var(--bear); }
+  .trade-value.gold { color: var(--gold-light); }
+
+  /* ─── SETTINGS CONTROLS ───────────────────────────── */
+  .settings-section {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .setting-label { font-size: 12px; color: var(--text-dim); }
+  .setting-input {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    width: 90px;
+    text-align: right;
+  }
+  .setting-input:focus { outline: none; border-color: var(--gold); }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .toggle-label { font-size: 12px; color: var(--text-dim); }
+  .toggle {
+    width: 36px; height: 18px;
+    background: var(--border2);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: var(--gold); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: var(--white);
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(18px); }
+
+  /* ─── CONFLUENCE METER ────────────────────────────── */
+  .confluence-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .conf-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .conf-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .conf-dot.pass { background: var(--bull); box-shadow: 0 0 6px var(--bull); }
+  .conf-dot.fail { background: var(--text-dim); }
+  .conf-dot.partial { background: var(--amber); }
+  .conf-name { font-size: 11px; color: var(--text); line-height: 1.3; }
+
+  .confluence-bar-wrap { margin-top: 12px; }
+  .confluence-bar-bg {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .confluence-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .confluence-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ─── INDICATORS ──────────────────────────────────── */
+  .indicator-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .indicator-row:last-child { border-bottom: none; }
+  .ind-name { font-size: 12px; color: var(--text-dim); }
+  .ind-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ind-signal {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .ind-signal.bull { background: var(--bull-dim); color: var(--bull); }
+  .ind-signal.bear { background: var(--bear-dim); color: var(--bear); }
+  .ind-signal.neut { background: var(--panel2); color: var(--text-dim); }
+
+  /* ─── MARKET STRUCTURE ────────────────────────────── */
+  .struct-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .struct-row:last-child { border-bottom: none; }
+  .struct-tf {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .struct-state {
+    flex: 1;
+    color: var(--text-dim);
+  }
+  .struct-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .struct-tag.bull { background: var(--bull-dim); color: var(--bull); }
+  .struct-tag.bear { background: var(--bear-dim); color: var(--bear); }
+  .struct-tag.choch { background: #1A1060; color: #A78BFA; border: 1px solid #7C3AED; }
+  .struct-tag.bos   { background: #0A2A1A; color: #4ADE80; border: 1px solid #16A34A; }
+
+  /* ─── KEY LEVELS ──────────────────────────────────── */
+  .level-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .level-row:last-child { border-bottom: none; }
+  .level-name { color: var(--text-dim); }
+  .level-price {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--white);
+  }
+  .level-dist {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ─── WYCKOFF PHASE ───────────────────────────────── */
+  .phase-display {
+    text-align: center;
+    padding: 16px;
+    background: var(--bg);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+  .phase-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold-light);
+    letter-spacing: 1px;
+  }
+  .phase-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .phase-event {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(212,160,23,0.15);
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+  }
+
+  /* ─── FIBONACCI ───────────────────────────────────── */
+  .fib-grid { display: flex; flex-direction: column; gap: 4px; }
+  .fib-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+  }
+  .fib-level {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--gold);
+    width: 42px;
+    flex-shrink: 0;
+    font-size: 10px;
+  }
+  .fib-bar-bg {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    position: relative;
+  }
+  .fib-bar-fill {
+    height: 100%;
+    background: var(--gold-dim);
+    border-radius: 2px;
+  }
+  .fib-bar-fill.ote { background: var(--gold); }
+  .fib-price {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    width: 60px;
+    text-align: right;
+    font-size: 11px;
+  }
+  .fib-ote-badge {
+    font-size: 9px;
+    background: rgba(212,160,23,0.2);
+    color: var(--gold);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-weight: 700;
+  }
+
+  /* ─── AMD CYCLE ───────────────────────────────────── */
+  .amd-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .amd-phase {
+    flex: 1;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .amd-phase.active {
+    border-color: var(--gold);
+    background: rgba(212,160,23,0.08);
+  }
+  .amd-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+  }
+  .amd-phase.active .amd-label { color: var(--gold); }
+  .amd-time {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    margin-top: 3px;
+  }
+
+  /* ─── ALERT LOG ───────────────────────────────────── */
+  .side-section {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .side-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .log-item {
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    background: var(--bg);
+    cursor: default;
+  }
+  .log-item:hover { border-color: var(--border2); }
+  .log-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3px;
+  }
+  .log-type {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+  .log-type.BUY  { color: var(--bull); }
+  .log-type.SELL { color: var(--bear); }
+  .log-type.WAIT { color: var(--amber); }
+  .log-time {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .log-price {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+  .log-reason { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+  /* ─── CHART ───────────────────────────────────────── */
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    padding: 10px;
+  }
+  #priceChart { width: 100% !important; height: 100% !important; }
+
+  /* ─── MINI CANDLES ────────────────────────────────── */
+  .candle-strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 60px;
+    padding: 4px;
+    background: var(--bg);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .candle-col { display: flex; flex-direction: column; align-items: center; gap: 1px; flex: 1; }
+  .candle-wick { width: 1px; background: var(--text-dim); }
+  .candle-body { width: 100%; border-radius: 1px; min-height: 2px; }
+
+  /* ─── RISK CALC ───────────────────────────────────── */
+  .risk-display {
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 12px;
+    margin-top: 8px;
+  }
+  .risk-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .risk-row:last-child { margin-bottom: 0; }
+  .risk-key { color: var(--text-dim); }
+  .risk-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--white); }
+  .risk-val.gold { color: var(--gold-light); }
+
+  /* ─── NEXT UPDATE ─────────────────────────────────── */
+  .next-update-bar {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  .update-label { color: var(--text-dim); }
+  .update-countdown {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .update-progress {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 16px;
+    overflow: hidden;
+  }
+  .update-progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 2px;
+    transition: width 1s linear;
+  }
+
+  /* ─── PULSE ANIMATION ─────────────────────────────── */
+  @keyframes pulse-bull { 0%,100%{box-shadow:0 0 0 0 rgba(0,208,132,0.4)} 50%{box-shadow:0 0 0 6px rgba(0,208,132,0)} }
+  @keyframes pulse-bear { 0%,100%{box-shadow:0 0 0 0 rgba(255,69,96,0.4)} 50%{box-shadow:0 0 0 6px rgba(255,69,96,0)} }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--bull);
+    animation: pulse-bull 2s infinite;
+  }
+  .live-dot.bear { background: var(--bear); animation: pulse-bear 2s infinite; }
+
+  .spinning { animation: spin 1s linear infinite; }
+  .fade-in  { animation: fadeIn 0.3s ease; }
+
+  /* ─── SCROLLBAR ───────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ─── STATUS TAG ──────────────────────────────────── */
+  .tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tag.bull { background: var(--bull-dim); color: var(--bull); }
+  .tag.bear { background: var(--bear-dim); color: var(--bear); }
+  .tag.neut { background: var(--panel2); color: var(--text-dim); border: 1px solid var(--border); }
+  .tag.gold { background: rgba(212,160,23,0.15); color: var(--gold); }
+  .tag.purple { background: rgba(155,89,182,0.2); color: #C39BD3; }
+
+  /* ─── NOTIFICATION ────────────────────────────────── */
+  .toast {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: var(--panel);
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--white);
+    z-index: 9999;
+    max-width: 300px;
+    animation: fadeIn 0.3s ease;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .toast.show { display: block; }
+
+  /* ─── RESPONSIVE ──────────────────────────────────── */
+  @media (max-width: 900px) {
+    .app-body { grid-template-columns: 1fr; }
+    .side-col  { border-left: none; border-top: 1px solid var(--border); }
+    .header-center { display: none; }
+    .panel-grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── TOAST ──────────────────────────────── -->
+<div class="toast" id="toast">🔔 New Signal Generated</div>
+
+<!-- ─── HEADER ─────────────────────────────── -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">Au</div>
+    <div>
+      <div class="logo-text">XAUUSD Intelligence</div>
+      <div class="logo-sub">SMART MONEY · SMC · WYCKOFF · ICT</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <div class="live-dot" id="liveDot"></div>
+    <div class="price-hero">
+      <div class="price-value" id="priceVal">—</div>
+      <div class="price-change" id="priceChange">Loading...</div>
+    </div>
+    <div class="session-badge" id="sessionBadge">—</div>
+  </div>
+
+  <div class="header-right">
+    <div class="pst-clock">
+      <div class="pst-time" id="pstTime">--:--:--</div>
+      <div class="pst-label">Pakistan Standard Time</div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="forceRefresh()">
+      <span id="refreshIcon">↻</span> Refresh
+    </button>
+  </div>
+</header>
+
+<!-- ─── BODY ───────────────────────────────── -->
+<div class="app-body">
+
+  <!-- MAIN COLUMN -->
+  <div class="main-col">
+
+    <!-- ALERT BANNER -->
+    <div class="alert-banner wait" id="alertBanner">
+      <div class="alert-direction wait" id="alertDir">WAIT</div>
+      <div class="alert-meta">
+        <div class="alert-reason" id="alertReason">Initializing analysis engine...</div>
+        <div class="alert-sub" id="alertSub">Fetching live XAUUSD data · PST Session Monitor Active</div>
+      </div>
+      <div class="alert-score">
+        <div class="score-val wait" id="alertScore">—</div>
+        <div class="score-label">Confluence</div>
+      </div>
+    </div>
+
+    <!-- NEXT UPDATE BAR -->
+    <div class="next-update-bar">
+      <span class="update-label">Next analysis in</span>
+      <div class="update-progress"><div class="update-progress-fill" id="progressBar" style="width:100%"></div></div>
+      <span class="update-countdown" id="countdown">5:00</span>
+    </div>
+
+    <!-- TRADE PLAN + RISK -->
+    <div class="panel-grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Trade Plan</span>
+          <span class="panel-badge tag gold" id="tpDirection">WAIT</span>
+        </div>
+        <div class="panel-body">
+          <div class="trade-row"><span class="trade-label">Entry Zone</span><span class="trade-value gold" id="tpEntry">—</span></div>
+          <div class="trade-row"><span class="trade-label">Stop Loss</span><span class="trade-value bear" id="tpSL">—</span></div>
+          <div class="trade-row"><span class="trade-label">TP1 (1.5R)</span><span class="trade-value bull" id="tpTP1">—</span></div>
+          <div class="trade-row"><span class="trade-label">TP2 (3.0R)</span><span class="trade-value bull" id="tpTP2">—</span></div>
+          <div class="trade-row"><span class="trade-label">TP3 (5.0R)</span><span class="trade-value bull" id="tpTP3">—</span></div>
+          <div class="trade-row"><span class="trade-label">Risk : Reward</span><span class="trade-value gold" id="tpRR">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Risk Manager</span>
+          <span class="panel-badge tag" id="riskTag" style="background:var(--bull-dim);color:var(--bull)">READY</span>
+        </div>
+        <div class="panel-body">
+          <div class="trade-row"><span class="trade-label">Account Balance</span><span class="trade-value gold" id="rmBalance">$10,000</span></div>
+          <div class="trade-row"><span class="trade-label">Risk %</span><span class="trade-value" id="rmRisk">2.0%</span></div>
+          <div class="trade-row"><span class="trade-label">Risk Amount</span><span class="trade-value" id="rmRiskAmt">$200</span></div>
+          <div class="trade-row"><span class="trade-label">Lot Size</span><span class="trade-value gold" id="rmLotSize">—</span></div>
+          <div class="trade-row"><span class="trade-label">SL Distance</span><span class="trade-value" id="rmSLDist">—</span></div>
+          <div class="trade-row"><span class="trade-label">ATR (14)</span><span class="trade-value" id="rmATR">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDICATORS GRID -->
+    <div class="panel-grid-2">
+
+      <!-- MOMENTUM INDICATORS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Momentum Indicators</span>
+          <span class="panel-badge tag neut">H1</span>
+        </div>
+        <div class="panel-body">
+          <div class="indicator-row">
+            <span class="ind-name">RSI (14)</span>
+            <span class="ind-value" id="iRSI">—</span>
+            <span class="ind-signal neut" id="iRSISig">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">MACD</span>
+            <span class="ind-value" id="iMACD">—</span>
+            <span class="ind-signal neut" id="iMACDSig">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">EMA Stack</span>
+            <span class="ind-value" id="iEMA">—</span>
+            <span class="ind-signal neut" id="iEMASig">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Stochastic</span>
+            <span class="ind-value" id="iStoch">—</span>
+            <span class="ind-signal neut" id="iStochSig">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Volume Spike</span>
+            <span class="ind-value" id="iVol">—</span>
+            <span class="ind-signal neut" id="iVolSig">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Bollinger %B</span>
+            <span class="ind-value" id="iBBand">—</span>
+            <span class="ind-signal neut" id="iBBandSig">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VSA SIGNALS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">VSA + Wyckoff</span>
+          <span class="panel-badge tag purple">SMC</span>
+        </div>
+        <div class="panel-body">
+          <div class="indicator-row">
+            <span class="ind-name">VSA Bar Type</span>
+            <span class="ind-value" id="iVSA" style="font-size:11px">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Effort vs Result</span>
+            <span class="ind-value" id="iEffort">—</span>
+            <span class="ind-signal neut" id="iEffortSig">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Wyckoff Phase</span>
+            <span class="ind-value" id="iWPhase" style="font-size:11px">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Wyckoff Event</span>
+            <span class="ind-value" id="iWEvent" style="font-size:11px">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Market Cycle</span>
+            <span class="ind-value" id="iCycle" style="font-size:11px">—</span>
+          </div>
+          <div class="indicator-row">
+            <span class="ind-name">Elder Screen</span>
+            <span class="ind-value" id="iElder" style="font-size:11px">—</span>
+            <span class="ind-signal neut" id="iElderSig">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFLUENCE + STRUCTURE -->
+    <div class="panel-grid-2">
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Confluence Score</span>
+          <span class="panel-badge tag" id="confBadge">0/6</span>
+        </div>
+        <div class="panel-body">
+          <div class="confluence-grid" id="confluenceGrid">
+            <!-- filled by JS -->
+          </div>
+          <div class="confluence-bar-wrap">
+            <div class="confluence-bar-label">
+              <span>Score</span>
+              <span id="confScore">0 / 6</span>
+            </div>
+            <div class="confluence-bar-bg">
+              <div class="confluence-bar-fill" id="confBar" style="width:0%; background: var(--text-dim)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Market Structure</span>
+          <span class="panel-badge tag neut">Multi-TF</span>
+        </div>
+        <div class="panel-body">
+          <div id="structureRows">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIBONACCI + KEY LEVELS -->
+    <div class="panel-grid-2">
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Fibonacci OTE Zones</span>
+          <span class="panel-badge tag gold" id="fibBadge">—</span>
+        </div>
+        <div class="panel-body">
+          <div style="margin-bottom:10px;font-size:11px;color:var(--text-dim)">
+            Swing: <span style="font-family:JetBrains Mono;color:var(--white)" id="fibSwing">—</span>
+          </div>
+          <div class="fib-grid" id="fibGrid"><!-- filled by JS --></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Key Price Levels</span>
+          <span class="panel-badge tag gold">PWH/PDH/NY</span>
+        </div>
+        <div class="panel-body" id="keyLevelsBody">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- AMD CYCLE + MINI CHART -->
+    <div class="panel-grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">AMD Cycle (ICT)</span>
+          <span class="panel-badge tag purple">London→NY</span>
+        </div>
+        <div class="panel-body">
+          <div class="amd-row" id="amdRow">
+            <div class="amd-phase" id="amdA">
+              <div class="amd-label">Accumulation</div>
+              <div class="amd-time">Asia 00–07 UTC</div>
+            </div>
+            <div class="amd-phase" id="amdM">
+              <div class="amd-label">Manipulation</div>
+              <div class="amd-time">London 07–12</div>
+            </div>
+            <div class="amd-phase" id="amdD">
+              <div class="amd-label">Distribution</div>
+              <div class="amd-time">NY 12–20 UTC</div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="trade-row"><span class="trade-label">Liquidity Status</span><span class="trade-value" id="liqStatus">—</span></div>
+            <div class="trade-row"><span class="trade-label">SSL / BSL Swept</span><span class="trade-value" id="liqSwept">—</span></div>
+            <div class="trade-row"><span class="trade-label">Inducement</span><span class="trade-value" id="liqInd">—</span></div>
+            <div class="trade-row"><span class="trade-label">Order Block Zone</span><span class="trade-value gold" id="obZone">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Price Action (Last 20 H1)</span>
+          <span class="panel-badge tag neut">LIVE</span>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap">
+            <canvas id="priceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOLD HEURISTICS -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Gold Heuristics Scorecard</span>
+        <span class="panel-badge tag gold" id="heurScore">0/10</span>
+      </div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px" id="heuristicsGrid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- SIDE COLUMN -->
+  <div class="side-col">
+
+    <!-- SETTINGS -->
+    <div class="settings-section">
+      <div class="settings-title">⚙ Risk Settings</div>
+      <div class="setting-row">
+        <span class="setting-label">Account Balance ($)</span>
+        <input class="setting-input" type="number" id="sBalance" value="10000" min="100" onchange="updateSettings()">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Risk Per Trade (%)</span>
+        <input class="setting-input" type="number" id="sRisk" value="2" min="0.1" max="10" step="0.1" onchange="updateSettings()">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Min Confluence (of 6)</span>
+        <input class="setting-input" type="number" id="sConf" value="4" min="1" max="6" onchange="updateSettings()">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">TP1 (R multiple)</span>
+        <input class="setting-input" type="number" id="sTP1" value="1.5" min="0.5" step="0.5" onchange="updateSettings()">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">TP2 (R multiple)</span>
+        <input class="setting-input" type="number" id="sTP2" value="3.0" min="1" step="0.5" onchange="updateSettings()">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">TP3 (R multiple)</span>
+        <input class="setting-input" type="number" id="sTP3" value="5.0" min="2" step="0.5" onchange="updateSettings()">
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">🔧 Trade Management</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Trailing Stop (ATR)</span>
+        <div class="toggle on" id="tTrailing" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Break Even @ 1:1</span>
+        <div class="toggle on" id="tBE" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Partial Close TP1</span>
+        <div class="toggle on" id="tPartial" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Avoid FOMO Filter</span>
+        <div class="toggle on" id="tFOMO" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">News Filter (±30m)</span>
+        <div class="toggle on" id="tNews" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">PST Session Only</span>
+        <div class="toggle on" id="tSession" onclick="toggleSetting(this)"></div>
+      </div>
+    </div>
+
+    <!-- ALERT LOG -->
+    <div class="side-section" style="flex:1">
+      <div class="side-title">📋 Signal History (PST)</div>
+      <div id="alertLog">
+        <div style="font-size:12px;color:var(--text-dim);text-align:center;padding:20px 0">
+          No signals yet. Waiting for live data...
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /side-col -->
+
+</div><!-- /app-body -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ════════════════════════════════════════════════════════════
+const CFG = {
+  balance: 10000,
+  riskPct: 2,
+  minConf: 4,
+  tp1R: 1.5,
+  tp2R: 3.0,
+  tp3R: 5.0,
+  trailing: true,
+  breakEven: true,
+  partialClose: true,
+  fomoFilter: true,
+  newsFilter: true,
+  pstOnly: true,
+  refreshSec: 300,   // 5 minutes
+};
+
+const GOLD_PIP_VALUE = 0.01; // XAUUSD: 1 pip = $0.10/0.01 lot
+const LOT_PIP = 1.0; // $1 per pip per standard lot (approx for Gold)
+
+let priceHistory   = [];
+let alertLog       = [];
+let countdownSec   = CFG.refreshSec;
+let chart          = null;
+let lastPrice      = 0;
+let currentSignal  = 'WAIT';
+
+// ════════════════════════════════════════════════════════════
+// PST CLOCK
+// ════════════════════════════════════════════════════════════
+function getPSTTime() {
+  // Pakistan Standard Time = UTC+5
+  const now  = new Date();
+  const utc  = now.getTime() + now.getTimezoneOffset() * 60000;
+  const pst  = new Date(utc + 5 * 3600000);
+  return pst;
+}
+
+function formatTime(d) {
+  return d.toTimeString().slice(0,8);
+}
+
+function isPSTTradingSession() {
+  const pst  = getPSTTime();
+  const h    = pst.getHours();
+  const m    = pst.getMinutes();
+  const mins = h * 60 + m;
+  return mins >= 17 * 60 && mins <= 20 * 60; // 17:00 – 20:00 PST
+}
+
+function getSessionLabel() {
+  const pst  = getPSTTime();
+  const h    = pst.getHours();
+  const utcH = new Date().getUTCHours();
+  if (isPSTTradingSession()) return 'NY SESSION ACTIVE';
+  if (h >= 14 && h < 17)     return 'PRE-SESSION';
+  if (h >= 20 && h < 24)     return 'SESSION CLOSED';
+  if (utcH >= 7 && utcH < 12) return 'LONDON ACTIVE';
+  return 'MARKET CLOSED';
+}
+
+function getSessionClass() {
+  const label = getSessionLabel();
+  if (label.includes('ACTIVE')) return 'active';
+  if (label.includes('PRE'))    return 'caution';
+  return 'closed';
+}
+
+function updateClock() {
+  const pst = getPSTTime();
+  document.getElementById('pstTime').textContent    = formatTime(pst);
+  document.getElementById('sessionBadge').textContent = getSessionLabel();
+  document.getElementById('sessionBadge').className   = 'session-badge ' + getSessionClass();
+}
+
+// ════════════════════════════════════════════════════════════
+// DATA FETCHING — Yahoo Finance API (free, no key)
+// ════════════════════════════════════════════════════════════
+async function fetchLivePrice() {
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=5m&range=1d&includePrePost=false';
+    const res  = await fetch(url);
+    const json = await res.json();
+    const result = json.chart?.result?.[0];
+    if (!result) throw new Error('No data');
+
+    const quotes     = result.indicators.quote[0];
+    const timestamps = result.timestamp;
+    const meta       = result.meta;
+
+    const bars = timestamps.map((t, i) => ({
+      time:   t * 1000,
+      open:   quotes.open[i]   || 0,
+      high:   quotes.high[i]   || 0,
+      low:    quotes.low[i]    || 0,
+      close:  quotes.close[i]  || 0,
+      volume: quotes.volume[i] || 0,
+    })).filter(b => b.close > 0);
+
+    return { bars, currentPrice: meta.regularMarketPrice || bars[bars.length-1]?.close };
+  } catch (e) {
+    console.warn('Yahoo fetch failed, using simulation:', e.message);
+    return null;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SIMULATION FALLBACK (if API unavailable)
+// ════════════════════════════════════════════════════════════
+function simulateBars(base = 2330, count = 60) {
+  const bars = [];
+  let price  = base + (Math.random() - 0.5) * 20;
+  const now  = Date.now();
+  for (let i = count; i >= 0; i--) {
+    const v = (Math.random() - 0.48) * 3;
+    const o = price;
+    const c = price + v;
+    const h = Math.max(o, c) + Math.random() * 2;
+    const l = Math.min(o, c) - Math.random() * 2;
+    bars.push({
+      time:   now - i * 5 * 60000,
+      open:   +o.toFixed(2),
+      high:   +h.toFixed(2),
+      low:    +l.toFixed(2),
+      close:  +c.toFixed(2),
+      volume: Math.floor(Math.random() * 15000 + 3000),
+    });
+    price = c;
+  }
+  return { bars, currentPrice: bars[bars.length-1].close };
+}
+
+// ════════════════════════════════════════════════════════════
+// TECHNICAL ANALYSIS ENGINE
+// ════════════════════════════════════════════════════════════
+
+function calcSMA(arr, n) {
+  if (arr.length < n) return null;
+  return arr.slice(-n).reduce((a,b) => a+b, 0) / n;
+}
+
+function calcEMA(arr, n) {
+  if (arr.length < n) return null;
+  const k = 2 / (n + 1);
+  let ema  = arr.slice(0, n).reduce((a,b) => a+b, 0) / n;
+  for (let i = n; i < arr.length; i++) ema = arr[i] * k + ema * (1 - k);
+  return ema;
+}
+
+function calcRSI(closes, n = 14) {
+  if (closes.length < n+1) return 50;
+  let gains = 0, losses = 0;
+  for (let i = closes.length - n; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d > 0) gains += d; else losses -= d;
+  }
+  const avgG = gains / n, avgL = losses / n;
+  if (avgL === 0) return 100;
+  const rs = avgG / avgL;
+  return 100 - (100 / (1 + rs));
+}
+
+function calcATR(bars, n = 14) {
+  if (bars.length < 2) return 5;
+  const trs = bars.slice(-n-1).slice(1).map((b, i) => {
+    const prev = bars[bars.length - n - 1 + i];
+    return Math.max(b.high - b.low, Math.abs(b.high - prev.close), Math.abs(b.low - prev.close));
+  });
+  return trs.reduce((a,b) => a+b, 0) / trs.length;
+}
+
+function calcMACD(closes) {
+  if (closes.length < 26) return { macd: 0, signal: 0, hist: 0 };
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+  const macd  = ema12 - ema26;
+  const signals = closes.slice(-9).map((_, i) => {
+    const s = closes.slice(0, closes.length - 8 + i);
+    return calcEMA(s, 12) - calcEMA(s, 26);
+  });
+  const signal = signals.reduce((a,b) => a+b, 0) / signals.length;
+  return { macd: +macd.toFixed(3), signal: +signal.toFixed(3), hist: +(macd - signal).toFixed(3) };
+}
+
+function calcStochastic(bars, k = 5) {
+  if (bars.length < k) return 50;
+  const slice = bars.slice(-k);
+  const hh = Math.max(...slice.map(b => b.high));
+  const ll = Math.min(...slice.map(b => b.low));
+  const c  = slice[slice.length-1].close;
+  if (hh === ll) return 50;
+  return ((c - ll) / (hh - ll)) * 100;
+}
+
+function calcBB(closes, n = 20) {
+  if (closes.length < n) return { upper: 0, mid: 0, lower: 0, pct: 0.5 };
+  const s    = closes.slice(-n);
+  const mid  = s.reduce((a,b) => a+b, 0) / n;
+  const std  = Math.sqrt(s.map(x => (x-mid)**2).reduce((a,b) => a+b, 0) / n);
+  const upper = mid + 2*std;
+  const lower = mid - 2*std;
+  const c    = closes[closes.length-1];
+  const pct  = (upper - lower) > 0 ? (c - lower) / (upper - lower) : 0.5;
+  return { upper: +upper.toFixed(2), mid: +mid.toFixed(2), lower: +lower.toFixed(2), pct: +pct.toFixed(3) };
+}
+
+// ─── SWING DETECTION ────────────────────────────────────
+function findSwings(bars, lookback = 5) {
+  const highs = [], lows = [];
+  for (let i = lookback; i < bars.length - lookback; i++) {
+    const window = bars.slice(i - lookback, i + lookback + 1);
+    if (bars[i].high === Math.max(...window.map(b => b.high))) highs.push({ i, price: bars[i].high });
+    if (bars[i].low  === Math.min(...window.map(b => b.low)))  lows.push({ i, price: bars[i].low });
+  }
+  return { highs, lows };
+}
+
+function detectStructure(bars) {
+  if (bars.length < 20) return { trend: 'NEUTRAL', bos: false, choch: false };
+  const { highs, lows } = findSwings(bars, 4);
+  if (highs.length < 2 || lows.length < 2) return { trend: 'NEUTRAL', bos: false, choch: false };
+
+  const lastH  = highs[highs.length-1].price;
+  const prev2H = highs[highs.length-2]?.price || lastH;
+  const lastL  = lows[lows.length-1].price;
+  const prev2L = lows[lows.length-2]?.price || lastL;
+
+  const isHH = lastH > prev2H;
+  const isHL = lastL > prev2L;
+  const isLH = lastH < prev2H;
+  const isLL = lastL < prev2L;
+
+  const c    = bars[bars.length-1].close;
+  const bos  = isHH ? 'BUL_BOS' : (isLL ? 'BEA_BOS' : false);
+  const choch = (!isHH && isHL) ? 'BUL_CHOCH' : ((!isLL && isLH) ? 'BEA_CHOCH' : false);
+
+  const trend = (isHH && isHL) ? 'BULLISH' : (isLH && isLL) ? 'BEARISH' : 'NEUTRAL';
+
+  // Order Block: last opposite candle before structure break
+  let obZone = null;
+  if (bos === 'BUL_BOS') {
+    const lastBear = [...bars].reverse().find(b => b.close < b.open);
+    if (lastBear) obZone = { low: lastBear.low, high: lastBear.high, type: 'BULL_OB' };
+  } else if (bos === 'BEA_BOS') {
+    const lastBull = [...bars].reverse().find(b => b.close > b.open);
+    if (lastBull) obZone = { low: lastBull.low, high: lastBull.high, type: 'BEAR_OB' };
+  }
+
+  return { trend, bos, choch, swingH: lastH, swingL: lastL, highs, lows, obZone };
+}
+
+// ─── VSA ANALYSIS ────────────────────────────────────────
+function analyzeVSA(bars) {
+  if (bars.length < 3) return { type: 'Unknown', effort: 'Neutral', bias: 'neutral' };
+  const b    = bars[bars.length-1];
+  const prev = bars[bars.length-2];
+  const vols = bars.slice(-20).map(x => x.volume);
+  const avgV = vols.reduce((a,c) => a+c, 0) / vols.length;
+  const spread = b.high - b.low;
+  const spreads = bars.slice(-20).map(x => x.high - x.low);
+  const avgS  = spreads.reduce((a,c) => a+c, 0) / spreads.length;
+  const isHighVol  = b.volume > avgV * 1.5;
+  const isLowVol   = b.volume < avgV * 0.6;
+  const isWideSpread = spread > avgS * 1.3;
+  const isNarrow   = spread < avgS * 0.6;
+  const closeRatio = (b.close - b.low) / (spread || 1);
+  const isBullBar  = b.close > b.open;
+  const isBearBar  = b.close < b.open;
+
+  let type = 'Normal';
+  let effort = 'Harmony';
+  let bias = 'neutral';
+
+  if (isHighVol && isWideSpread && closeRatio < 0.4 && isBullBar) { type = 'Stopping Volume'; bias = 'bull'; effort = 'Absorption'; }
+  else if (isNarrow && isLowVol && closeRatio > 0.6) { type = 'No Supply'; bias = 'bull'; effort = 'Harmony'; }
+  else if (isNarrow && isLowVol && closeRatio < 0.4) { type = 'No Demand'; bias = 'bear'; effort = 'Harmony'; }
+  else if (isHighVol && isWideSpread && !isBullBar)  { type = 'Climactic Action'; bias = 'bear'; effort = 'Exhaustion'; }
+  else if (isBullBar && isHighVol && closeRatio < 0.3) { type = 'Upthrust'; bias = 'bear'; effort = 'Divergence'; }
+  else if (isNarrow && isLowVol && isBullBar && b.close > b.high * 0.6) { type = 'Test Rising'; bias = 'bull'; effort = 'Harmony'; }
+  else if (isHighVol && isWideSpread && isBullBar && closeRatio > 0.6) { type = 'Demand Entry'; bias = 'bull'; effort = 'Harmony'; }
+
+  const volRatio = b.volume / (avgV || 1);
+  const spreadRatio = spread / (avgS || 1);
+  if (Math.abs(volRatio - spreadRatio) > 0.8) effort = 'Divergence';
+
+  return { type, effort, bias, volRatio: +volRatio.toFixed(2), spreadRatio: +spreadRatio.toFixed(2) };
+}
+
+// ─── WYCKOFF PHASE ─────────────────────────────────────
+function detectWyckoff(bars, struct) {
+  if (bars.length < 30) return { phase: 'Unknown', schematic: '—', event: '—', bias: 'neutral' };
+
+  const { trend, bos, choch } = struct;
+  const rsi  = calcRSI(bars.map(b => b.close));
+  const vsa  = analyzeVSA(bars);
+  const vol30  = bars.slice(-30).map(b => b.volume);
+  const volTrend = calcSMA(vol30.slice(-10), 10) > calcSMA(vol30.slice(0, 10), 10) ? 'rising' : 'falling';
+
+  let phase = 'Phase B', schematic = 'Accumulation #1', event = 'ST', bias = 'bull';
+
+  if (trend === 'BEARISH' && rsi < 35 && vsa.type === 'Stopping Volume') {
+    phase = 'Phase A'; event = 'SC (Selling Climax)'; schematic = 'Accumulation #1'; bias = 'bull';
+  } else if (trend === 'BEARISH' && rsi < 40 && vsa.type.includes('No Supply')) {
+    phase = 'Phase C'; event = 'Spring'; schematic = 'Accumulation #1'; bias = 'bull';
+  } else if (trend === 'BULLISH' && rsi > 65 && vsa.type === 'Upthrust') {
+    phase = 'Phase C'; event = 'UTAD'; schematic = 'Distribution #1'; bias = 'bear';
+  } else if (trend === 'BULLISH' && rsi > 70 && vsa.type === 'Climactic Action') {
+    phase = 'Phase A'; event = 'BC (Buying Climax)'; schematic = 'Distribution #1'; bias = 'bear';
+  } else if (choch === 'BUL_CHOCH') {
+    phase = 'Phase D'; event = 'SOS (Sign of Strength)'; schematic = 'Accumulation #2'; bias = 'bull';
+  } else if (choch === 'BEA_CHOCH') {
+    phase = 'Phase D'; event = 'SOW (Sign of Weakness)'; schematic = 'Distribution #2'; bias = 'bear';
+  } else if (trend === 'BULLISH' && volTrend === 'rising') {
+    phase = 'Phase E'; event = 'Markup'; schematic = 'Re-Accumulation'; bias = 'bull';
+  } else if (trend === 'BEARISH' && volTrend === 'rising') {
+    phase = 'Phase E'; event = 'Markdown'; schematic = 'Re-Distribution'; bias = 'bear';
+  } else {
+    phase = 'Phase B'; event = 'Secondary Test'; bias = trend === 'BULLISH' ? 'bull' : 'bear';
+  }
+
+  return { phase, schematic, event, bias };
+}
+
+// ─── FIBONACCI ──────────────────────────────────────────
+function calcFib(high, low) {
+  const range = high - low;
+  const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.705, 0.786, 1.0];
+  const result = {};
+  levels.forEach(l => { result[l] = +(high - range * l).toFixed(2); });
+  return result;
+}
+
+// ─── KEY LEVELS ─────────────────────────────────────────
+function calcKeyLevels(bars, currentPrice) {
+  if (bars.length < 2) return {};
+  const all = bars.map(b => b.high);
+  const allL = bars.map(b => b.low);
+  const recent24 = bars.slice(-24);
+  const recent120 = bars.slice(-120);
+
+  const pdh = Math.max(...recent24.map(b => b.high));
+  const pdl = Math.min(...recent24.map(b => b.low));
+  const pwh = Math.max(...recent120.map(b => b.high));
+  const pwl = Math.min(...recent120.map(b => b.low));
+
+  // Round numbers
+  const round50  = Math.round(currentPrice / 50) * 50;
+  const round100 = Math.round(currentPrice / 100) * 100;
+
+  // NY Open (closest bar to 13:00 UTC)
+  const now = Date.now();
+  const nyOpenMs = new Date().setUTCHours(13, 0, 0, 0);
+  const nyBar = bars.reduce((a, b) => Math.abs(b.time - nyOpenMs) < Math.abs(a.time - nyOpenMs) ? b : a);
+
+  return { PDH: pdh, PDL: pdl, PWH: pwh, PWL: pwl,
+           'NY Open': nyBar.open, 'Round 50': round50, 'Round 100': round100 };
+}
+
+// ─── MARKET CYCLE ────────────────────────────────────────
+function detectCycle(bars, struct) {
+  const { trend, choch, bos } = struct;
+  const vsa  = analyzeVSA(bars);
+  const rsi  = calcRSI(bars.map(b => b.close));
+
+  if (trend === 'BEARISH' && rsi < 35) return 'Accumulation';
+  if (trend === 'BULLISH' && choch === 'BUL_CHOCH') return 'Early Markup';
+  if (trend === 'BULLISH' && rsi > 40 && rsi < 70) return 'Markup';
+  if (trend === 'BULLISH' && rsi > 70 && vsa.type === 'Climactic Action') return 'Distribution';
+  if (trend === 'BEARISH' && rsi > 35 && rsi < 65) return 'Markdown';
+  if (trend === 'NEUTRAL' && bos) return 'Re-Accumulation';
+  return 'Consolidation';
+}
+
+// ─── ELDER TRIPLE SCREEN ─────────────────────────────────
+function elderScreens(bars) {
+  const closes = bars.map(b => b.close);
+  const ema13  = calcEMA(closes, 13);
+  const ema26  = calcEMA(closes, 26);
+  const macd   = calcMACD(closes);
+  const stoch  = calcStochastic(bars, 5);
+  const price  = closes[closes.length-1];
+
+  const s1Bull = ema13 > ema26 && macd.hist > 0;
+  const s2Bull = stoch < 40;
+  const s3Bull = price > (calcEMA(closes.slice(-5), 5) || price);
+
+  const s1Bear = ema13 < ema26 && macd.hist < 0;
+  const s2Bear = stoch > 60;
+  const s3Bear = price < (calcEMA(closes.slice(-5), 5) || price);
+
+  const bullish = s1Bull && s2Bull;
+  const bearish = s1Bear && s2Bear;
+
+  return {
+    screen1: s1Bull ? '↑ Bull Tide' : (s1Bear ? '↓ Bear Tide' : '→ Neutral'),
+    screen2: s2Bull ? 'Oversold (Buy Zone)' : (s2Bear ? 'Overbought (Sell Zone)' : 'Mid Zone'),
+    screen3: s3Bull ? 'Bull Trigger' : (s3Bear ? 'Bear Trigger' : 'Neutral'),
+    bullish, bearish,
+    aligned: bullish ? 'BULLISH' : (bearish ? 'BEARISH' : 'MIXED')
+  };
+}
+
+// ─── AMD CYCLE PHASE ─────────────────────────────────────
+function getAMDPhase() {
+  const utcH = new Date().getUTCHours();
+  if (utcH >= 0 && utcH < 7)   return 'A';  // Accumulation
+  if (utcH >= 7 && utcH < 12)  return 'M';  // Manipulation
+  if (utcH >= 12 && utcH < 20) return 'D';  // Distribution
+  return 'A';
+}
+
+// ─── CONFLUENCE SCORE ──────────────────────────────────
+function scoreConfluence(analysis) {
+  const { struct, wyckoff, vsa, elder, fib, currentPrice, bars } = analysis;
+  const items = [];
+  let score = 0;
+  let dir   = 'WAIT';
+  let bullPts = 0, bearPts = 0;
+
+  // 1. Wyckoff + VSA
+  const wBull = wyckoff.bias === 'bull' && (vsa.type.includes('No Supply') || vsa.type === 'Stopping Volume' || wyckoff.event.includes('Spring'));
+  const wBear = wyckoff.bias === 'bear' && (vsa.type.includes('No Demand') || vsa.type === 'Climactic' || wyckoff.event.includes('UTAD'));
+  const w1 = wBull || wBear;
+  if (w1) { score++; if (wBull) bullPts++; else bearPts++; }
+  items.push({ name: 'Wyckoff + VSA', pass: w1, partial: !w1 && (wyckoff.phase !== 'Unknown') });
+
+  // 2. Market Structure (BOS/CHoCH)
+  const s2Bull = struct.bos === 'BUL_BOS' || struct.choch === 'BUL_CHOCH';
+  const s2Bear = struct.bos === 'BEA_BOS' || struct.choch === 'BEA_CHOCH';
+  const s2 = s2Bull || s2Bear;
+  if (s2) { score++; if (s2Bull) bullPts++; else bearPts++; }
+  items.push({ name: 'BOS / CHoCH', pass: s2, partial: struct.trend !== 'NEUTRAL' });
+
+  // 3. Order Block / S&D Zone
+  const inOB = struct.obZone && currentPrice >= struct.obZone.low - 2 && currentPrice <= struct.obZone.high + 2;
+  const ob3Bull = inOB && struct.obZone?.type === 'BULL_OB';
+  const ob3Bear = inOB && struct.obZone?.type === 'BEAR_OB';
+  if (inOB) { score++; if (ob3Bull) bullPts++; else bearPts++; }
+  items.push({ name: 'Order Block Zone', pass: inOB, partial: !inOB && !!struct.obZone });
+
+  // 4. Fibonacci OTE
+  const inOTE = fib.inOTE;
+  const fibBull = inOTE && fib.discount;
+  const fibBear = inOTE && !fib.discount;
+  if (inOTE) { score++; if (fibBull) bullPts++; else bearPts++; }
+  items.push({ name: 'Fib OTE Zone', pass: inOTE, partial: !inOTE && Math.abs(currentPrice - fib.midOTE) < 10 });
+
+  // 5. Elder Triple Screen
+  const e5 = elder.bullish || elder.bearish;
+  if (e5) { score++; if (elder.bullish) bullPts++; else bearPts++; }
+  items.push({ name: 'Elder 3-Screen', pass: e5, partial: elder.aligned !== 'MIXED' });
+
+  // 6. Liquidity Sweep
+  const rsi    = calcRSI(bars.map(b => b.close));
+  const liqBull = rsi < 35 && struct.trend !== 'BULLISH';
+  const liqBear = rsi > 65 && struct.trend !== 'BEARISH';
+  const l6 = liqBull || liqBear;
+  if (l6) { score++; if (liqBull) bullPts++; else bearPts++; }
+  items.push({ name: 'Liquidity Swept', pass: l6, partial: rsi < 45 || rsi > 55 });
+
+  if (bullPts > bearPts && score >= CFG.minConf) dir = 'BUY';
+  else if (bearPts > bullPts && score >= CFG.minConf) dir = 'SELL';
+  else dir = 'WAIT';
+
+  return { score, items, dir, bullPts, bearPts };
+}
+
+// ─── GOLD HEURISTICS ─────────────────────────────────────
+function checkHeuristics(bars, currentPrice, struct) {
+  const utcH   = new Date().getUTCHours();
+  const pst    = getPSTTime();
+  const pstH   = pst.getHours();
+  const rsi    = calcRSI(bars.map(b => b.close));
+  const closes = bars.map(b => b.close);
+  const ema50  = calcEMA(closes, 50);
+  const { highs, lows } = findSwings(bars, 5);
+  const swH    = highs[highs.length-1]?.price || currentPrice + 10;
+  const swL    = lows[lows.length-1]?.price   || currentPrice - 10;
+  const fib50  = (swH + swL) / 2;
+
+  const roundDist = Math.abs(currentPrice - Math.round(currentPrice / 50) * 50);
+
+  const checks = [
+    { name: 'NY Open Zone',       pass: utcH === 13 || utcH === 14 },
+    { name: 'London Sweep',       pass: utcH >= 7 && utcH < 10 },
+    { name: 'Round # Magnet',     pass: roundDist < 5 },
+    { name: 'PST Prime Time',     pass: isPSTTradingSession() },
+    { name: 'Above EMA50',        pass: currentPrice > (ema50 || currentPrice) },
+    { name: 'FVG Present',        pass: detectFVG(bars) },
+    { name: '50% Fib Respect',    pass: Math.abs(currentPrice - fib50) < 3 },
+    { name: 'Swing Liq Present',  pass: struct.swingH && (struct.swingH - currentPrice) < 15 },
+    { name: 'Wed Reversal',       pass: new Date().getDay() === 3 },
+    { name: 'RSI Extremes',       pass: rsi < 30 || rsi > 70 },
+  ];
+  return checks;
+}
+
+function detectFVG(bars) {
+  if (bars.length < 3) return false;
+  const a = bars[bars.length-3];
+  const b = bars[bars.length-2];
+  const c = bars[bars.length-1];
+  return c.low > a.high || c.high < a.low;
+}
+
+// ─── TRADE PLAN ──────────────────────────────────────────
+function buildTradePlan(dir, currentPrice, atr, struct) {
+  if (dir === 'WAIT') return null;
+
+  const slDist = atr * 1.5;
+  const sl     = dir === 'BUY' ? +(currentPrice - slDist).toFixed(2) : +(currentPrice + slDist).toFixed(2);
+  const risk   = Math.abs(currentPrice - sl);
+  const tp1    = dir === 'BUY' ? +(currentPrice + risk * CFG.tp1R).toFixed(2) : +(currentPrice - risk * CFG.tp1R).toFixed(2);
+  const tp2    = dir === 'BUY' ? +(currentPrice + risk * CFG.tp2R).toFixed(2) : +(currentPrice - risk * CFG.tp2R).toFixed(2);
+  const tp3    = dir === 'BUY' ? +(currentPrice + risk * CFG.tp3R).toFixed(2) : +(currentPrice - risk * CFG.tp3R).toFixed(2);
+
+  const riskAmt  = CFG.balance * (CFG.riskPct / 100);
+  const lotSize  = +(riskAmt / (slDist * 100)).toFixed(2);
+
+  return { dir, entry: +currentPrice.toFixed(2), sl, tp1, tp2, tp3, slDist: +slDist.toFixed(2), lotSize, riskAmt: +riskAmt.toFixed(2), atr: +atr.toFixed(2) };
+}
+
+// ════════════════════════════════════════════════════════════
+// CHART
+// ════════════════════════════════════════════════════════════
+function buildChart(bars) {
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const last20 = bars.slice(-20);
+  const labels = last20.map(b => {
+    const d = new Date(b.time);
+    return d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2,'0');
+  });
+  const closes = last20.map(b => b.close);
+  const bull = closes[closes.length-1] >= closes[0];
+  const lineColor = bull ? '#00D084' : '#FF4560';
+  const fillColor = bull ? 'rgba(0,208,132,0.08)' : 'rgba(255,69,96,0.08)';
+
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: closes,
+        borderColor: lineColor,
+        backgroundColor: fillColor,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#0D1117',
+        borderColor: '#1E2D3D',
+        borderWidth: 1,
+        titleColor: '#C8D6E5',
+        bodyColor: '#D4A017',
+        callbacks: { label: ctx => '$' + ctx.raw.toFixed(2) }
+      }},
+      scales: {
+        x: { ticks: { color: '#4A6078', font: { size: 9 }, maxTicksLimit: 8 }, grid: { color: '#1E2D3D' } },
+        y: { ticks: { color: '#4A6078', font: { size: 9, family: 'JetBrains Mono' } }, grid: { color: '#1E2D3D' } }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// UI UPDATE FUNCTIONS
+// ════════════════════════════════════════════════════════════
+function updatePrice(current, prev) {
+  const el   = document.getElementById('priceVal');
+  const chEl = document.getElementById('priceChange');
+  const dot  = document.getElementById('liveDot');
+  const diff = current - prev;
+  const pct  = prev ? ((diff / prev) * 100).toFixed(2) : 0;
+
+  el.textContent = '$' + current.toFixed(2);
+  chEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' (' + pct + '%)';
+  chEl.className = 'price-change ' + (diff >= 0 ? 'up' : 'down');
+  dot.className  = 'live-dot ' + (diff >= 0 ? '' : 'bear');
+}
+
+function updateAlert(conf, tradePlan) {
+  const dir   = conf.dir;
+  const score = conf.score;
+  const banner = document.getElementById('alertBanner');
+  const dirEl  = document.getElementById('alertDir');
+  const reasonEl = document.getElementById('alertReason');
+  const subEl    = document.getElementById('alertSub');
+  const scoreEl  = document.getElementById('alertScore');
+  const tpDirEl  = document.getElementById('tpDirection');
+
+  banner.className = 'alert-banner fade-in ' + dir.toLowerCase();
+  dirEl.className  = 'alert-direction ' + dir.toLowerCase();
+  scoreEl.className = 'score-val ' + dir.toLowerCase();
+  dirEl.textContent  = dir;
+  scoreEl.textContent = score + '/6';
+
+  const reasons = [];
+  if (conf.items[0].pass) reasons.push('Wyckoff+VSA');
+  if (conf.items[1].pass) reasons.push('Structure BOS/CHoCH');
+  if (conf.items[2].pass) reasons.push('Order Block');
+  if (conf.items[3].pass) reasons.push('Fib OTE');
+  if (conf.items[4].pass) reasons.push('Elder 3-Screen');
+  if (conf.items[5].pass) reasons.push('Liquidity');
+
+  reasonEl.textContent = dir === 'WAIT'
+    ? `Confluence insufficient (${score}/6 — need ${CFG.minConf})`
+    : `${dir} Signal — ${reasons.join(' · ')}`;
+
+  subEl.textContent = tradePlan
+    ? `Entry: $${tradePlan.entry} | SL: $${tradePlan.sl} | Lots: ${tradePlan.lotSize}`
+    : 'Wait for minimum ' + CFG.minConf + '/6 confluence before entry';
+
+  tpDirEl.textContent = dir;
+  tpDirEl.style.background = dir === 'BUY' ? 'var(--bull-dim)' : dir === 'SELL' ? 'var(--bear-dim)' : 'var(--panel2)';
+  tpDirEl.style.color      = dir === 'BUY' ? 'var(--bull)' : dir === 'SELL' ? 'var(--bear)' : 'var(--text-dim)';
+}
+
+function updateTradePlan(tp) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  if (!tp) {
+    ['tpEntry','tpSL','tpTP1','tpTP2','tpTP3','tpRR'].forEach(id => set(id, '—'));
+    return;
+  }
+  set('tpEntry', '$' + tp.entry);
+  set('tpSL',    '$' + tp.sl);
+  set('tpTP1',   '$' + tp.tp1);
+  set('tpTP2',   '$' + tp.tp2);
+  set('tpTP3',   '$' + tp.tp3);
+  set('tpRR',    '1:' + CFG.tp3R);
+
+  set('rmBalance', '$' + CFG.balance.toLocaleString());
+  set('rmRisk',    CFG.riskPct + '%');
+  set('rmRiskAmt', '$' + tp.riskAmt.toFixed(2));
+  set('rmLotSize', tp.lotSize + ' lots');
+  set('rmSLDist',  tp.slDist.toFixed(1) + ' pts');
+  set('rmATR',     tp.atr.toFixed(2));
+}
+
+function updateIndicators(bars, struct, wyckoff, vsa, elder) {
+  const closes = bars.map(b => b.close);
+  const rsi    = calcRSI(closes);
+  const macd   = calcMACD(closes);
+  const ema8   = calcEMA(closes, 8);
+  const ema21  = calcEMA(closes, 21);
+  const ema50  = calcEMA(closes, 50);
+  const stoch  = calcStochastic(bars, 5);
+  const bb     = calcBB(closes);
+  const atr    = calcATR(bars);
+  const c      = closes[closes.length-1];
+  const vols   = bars.map(b => b.volume);
+  const avgV   = calcSMA(vols, 20);
+
+  const setInd = (id, valId, sigId, val, sig, cls) => {
+    const vEl = document.getElementById(valId);
+    const sEl = document.getElementById(sigId);
+    if (vEl) vEl.textContent = val;
+    if (sEl) { sEl.textContent = sig; sEl.className = 'ind-signal ' + cls; }
+  };
+
+  const rsiSig = rsi < 30 ? 'Oversold' : rsi > 70 ? 'Overbought' : 'Neutral';
+  const rsiCls = rsi < 30 ? 'bull' : rsi > 70 ? 'bear' : 'neut';
+  setInd(null, 'iRSI', 'iRSISig', rsi.toFixed(1), rsiSig, rsiCls);
+
+  const macdSig = macd.hist > 0 ? 'Bullish' : 'Bearish';
+  setInd(null, 'iMACD', 'iMACDSig', macd.macd.toFixed(2), macdSig, macd.hist > 0 ? 'bull' : 'bear');
+
+  const emaBull = ema8 > ema21 && ema21 > ema50;
+  const emaBear = ema8 < ema21 && ema21 < ema50;
+  const emaStr  = emaBull ? '8>21>50' : emaBear ? '8<21<50' : 'Mixed';
+  setInd(null, 'iEMA', 'iEMASig', emaStr, emaBull ? 'Bull Stack' : emaBear ? 'Bear Stack' : 'Neutral', emaBull ? 'bull' : emaBear ? 'bear' : 'neut');
+
+  const stochSig = stoch < 30 ? 'Oversold' : stoch > 70 ? 'Overbought' : 'Neutral';
+  setInd(null, 'iStoch', 'iStochSig', stoch.toFixed(1), stochSig, stoch < 30 ? 'bull' : stoch > 70 ? 'bear' : 'neut');
+
+  const volLast  = bars[bars.length-1].volume;
+  const volSpike = volLast > (avgV || 1) * 1.5;
+  setInd(null, 'iVol', 'iVolSig', (volLast/1000).toFixed(1)+'K', volSpike ? 'Spike!' : 'Normal', volSpike ? 'bull' : 'neut');
+
+  const bbSig = bb.pct > 0.8 ? 'Overbought' : bb.pct < 0.2 ? 'Oversold' : 'Mid';
+  setInd(null, 'iBBand', 'iBBandSig', (bb.pct*100).toFixed(0)+'%', bbSig, bb.pct < 0.2 ? 'bull' : bb.pct > 0.8 ? 'bear' : 'neut');
+
+  // VSA+Wyckoff
+  document.getElementById('iVSA').textContent    = vsa.type;
+  document.getElementById('iEffort').textContent  = vsa.effort;
+  const efEl = document.getElementById('iEffortSig');
+  efEl.textContent = vsa.effort === 'Harmony' ? 'OK' : vsa.effort === 'Absorption' ? 'ABS' : 'DIV';
+  efEl.className   = 'ind-signal ' + (vsa.effort === 'Harmony' ? 'bull' : vsa.effort === 'Divergence' ? 'bear' : 'neut');
+
+  document.getElementById('iWPhase').textContent  = wyckoff.phase;
+  document.getElementById('iWEvent').textContent  = wyckoff.event;
+  document.getElementById('iCycle').textContent   = detectCycle(bars, struct);
+
+  document.getElementById('iElder').textContent   = elder.aligned;
+  const elEl = document.getElementById('iElderSig');
+  elEl.textContent = elder.bullish ? 'BULL' : elder.bearish ? 'BEAR' : 'MIX';
+  elEl.className   = 'ind-signal ' + (elder.bullish ? 'bull' : elder.bearish ? 'bear' : 'neut');
+}
+
+function updateConfluence(conf) {
+  const grid = document.getElementById('confluenceGrid');
+  grid.innerHTML = conf.items.map(item => `
+    <div class="conf-item">
+      <div class="conf-dot ${item.pass ? 'pass' : item.partial ? 'partial' : 'fail'}"></div>
+      <span class="conf-name">${item.name}</span>
+    </div>`).join('');
+
+  const pct = (conf.score / 6) * 100;
+  document.getElementById('confBar').style.width = pct + '%';
+  document.getElementById('confBar').style.background = conf.score >= CFG.minConf
+    ? (conf.dir === 'BUY' ? 'var(--bull)' : conf.dir === 'SELL' ? 'var(--bear)' : 'var(--gold)')
+    : 'var(--text-dim)';
+  document.getElementById('confScore').textContent = conf.score + ' / 6';
+  const badge = document.getElementById('confBadge');
+  badge.textContent = conf.score + '/6';
+  badge.style.background = conf.score >= CFG.minConf ? 'var(--bull-dim)' : 'var(--bear-dim)';
+  badge.style.color      = conf.score >= CFG.minConf ? 'var(--bull)' : 'var(--bear)';
+}
+
+function updateStructure(bars) {
+  const tfs = [
+    { label: 'W1',  slice: -120, color: 'var(--gold)' },
+    { label: 'D1',  slice: -24 },
+    { label: 'H4',  slice: -12 },
+    { label: 'H1',  slice: -6  },
+    { label: 'M15', slice: -3  },
+  ];
+  const container = document.getElementById('structureRows');
+  container.innerHTML = tfs.map(tf => {
+    const b  = bars.slice(tf.slice);
+    const s  = detectStructure(b);
+    const tag = s.choch ? `<span class="struct-tag choch">${s.choch}</span>`
+               : s.bos  ? `<span class="struct-tag bos">${s.bos}</span>`
+               : `<span class="struct-tag ${s.trend === 'BULLISH' ? 'bull' : s.trend === 'BEARISH' ? 'bear' : ''}">${s.trend}</span>`;
+    return `<div class="struct-row">
+      <span class="struct-tf">${tf.label}</span>
+      <span class="struct-state">${s.trend}</span>
+      ${tag}
+    </div>`;
+  }).join('');
+}
+
+function updateFib(bars, currentPrice) {
+  const { highs, lows } = findSwings(bars, 5);
+  if (!highs.length || !lows.length) return;
+  const swH = Math.max(...highs.map(h => h.price));
+  const swL = Math.min(...lows.map(l => l.price));
+  const fibs = calcFib(swH, swL);
+  const oteHi = fibs[0.618], oteLo = fibs[0.786];
+  const inOTE = currentPrice >= oteLo && currentPrice <= oteHi;
+  const discount = currentPrice < fibs[0.5];
+
+  document.getElementById('fibSwing').textContent = `$${swL.toFixed(2)} → $${swH.toFixed(2)}`;
+  document.getElementById('fibBadge').textContent = inOTE ? 'IN OTE ✓' : discount ? 'DISCOUNT' : 'PREMIUM';
+
+  const levels = [[0, '0%'], [0.236, '23.6%'], [0.382, '38.2%'], [0.5, '50%'],
+                  [0.618, '61.8% OTE'], [0.705, '70.5%'], [0.786, '78.6% OTE'], [1.0, '100%']];
+  const range = swH - swL;
+
+  document.getElementById('fibGrid').innerHTML = levels.map(([l, label]) => {
+    const price = fibs[l];
+    const pct   = range > 0 ? ((swH - price) / range) * 100 : 0;
+    const isOTE = label.includes('OTE');
+    const isCurr = Math.abs(currentPrice - price) < 3;
+    return `<div class="fib-row">
+      <span class="fib-level">${label.replace(' OTE','')}</span>
+      <div class="fib-bar-bg">
+        <div class="fib-bar-fill ${isOTE ? 'ote' : ''}" style="width:${Math.min(pct,100)}%"></div>
+      </div>
+      <span class="fib-price" style="${isCurr ? 'color:var(--gold-light);font-weight:700' : ''}">${price.toFixed(2)}</span>
+      ${isOTE ? '<span class="fib-ote-badge">OTE</span>' : ''}
+    </div>`;
+  }).join('');
+
+  return { inOTE, discount, midOTE: (oteHi + oteLo) / 2 };
+}
+
+function updateKeyLevels(bars, currentPrice) {
+  const levels = calcKeyLevels(bars, currentPrice);
+  const body   = document.getElementById('keyLevelsBody');
+  body.innerHTML = Object.entries(levels).map(([name, price]) => {
+    const dist = (price - currentPrice).toFixed(2);
+    const sign = dist > 0 ? '+' : '';
+    return `<div class="level-row">
+      <span class="level-name">${name}</span>
+      <span class="level-price">$${(+price).toFixed(2)}</span>
+      <span class="level-dist">${sign}${dist}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateAMD() {
+  const phase = getAMDPhase();
+  ['amdA', 'amdM', 'amdD'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  const map = { A: 'amdA', M: 'amdM', D: 'amdD' };
+  document.getElementById(map[phase]).classList.add('active');
+}
+
+function updateLiquidity(bars, struct, currentPrice) {
+  const rsi    = calcRSI(bars.map(b => b.close));
+  const sslSwept = rsi < 35 || struct.trend === 'BULLISH' && struct.choch;
+  const bslSwept = rsi > 65 || struct.trend === 'BEARISH' && struct.choch;
+  const hasFVG   = detectFVG(bars);
+
+  document.getElementById('liqStatus').textContent  = sslSwept ? 'SSL Swept' : bslSwept ? 'BSL Swept' : 'Unswept';
+  document.getElementById('liqStatus').style.color  = sslSwept ? 'var(--bull)' : bslSwept ? 'var(--bear)' : 'var(--text-dim)';
+  document.getElementById('liqSwept').textContent   = sslSwept ? 'Yes — Bull Setup' : bslSwept ? 'Yes — Bear Setup' : 'Not Yet';
+  document.getElementById('liqInd').textContent     = hasFVG ? 'FVG Present' : 'No FVG';
+
+  const obEl = document.getElementById('obZone');
+  if (struct.obZone) {
+    obEl.textContent = `${struct.obZone.type}: $${struct.obZone.low.toFixed(2)}–$${struct.obZone.high.toFixed(2)}`;
+    obEl.style.color = struct.obZone.type === 'BULL_OB' ? 'var(--bull)' : 'var(--bear)';
+  } else {
+    obEl.textContent = 'Not detected';
+    obEl.style.color = 'var(--text-dim)';
+  }
+}
+
+function updateHeuristics(bars, currentPrice, struct) {
+  const checks = checkHeuristics(bars, currentPrice, struct);
+  const grid   = document.getElementById('heuristicsGrid');
+  const score  = checks.filter(c => c.pass).length;
+
+  grid.innerHTML = checks.map(c => `
+    <div style="padding:8px;border-radius:5px;border:1px solid ${c.pass ? 'var(--gold-dim)' : 'var(--border)'};
+      background:${c.pass ? 'rgba(212,160,23,0.08)' : 'var(--bg)'};text-align:center">
+      <div style="font-size:16px;margin-bottom:4px">${c.pass ? '✓' : '·'}</div>
+      <div style="font-size:10px;color:${c.pass ? 'var(--gold)' : 'var(--text-dim)'};line-height:1.3">${c.name}</div>
+    </div>`).join('');
+
+  document.getElementById('heurScore').textContent = score + '/10';
+}
+
+function addAlertLog(dir, price, conf, time) {
+  const item = { dir, price, conf, time };
+  alertLog.unshift(item);
+  if (alertLog.length > 20) alertLog.pop();
+
+  const container = document.getElementById('alertLog');
+  container.innerHTML = alertLog.map(a => `
+    <div class="log-item fade-in">
+      <div class="log-top">
+        <span class="log-type ${a.dir}">${a.dir}</span>
+        <span class="log-time">${a.time}</span>
+      </div>
+      <div class="log-price">$${a.price.toFixed(2)}</div>
+      <div class="log-reason">Confluence: ${a.conf}/6</div>
+    </div>`).join('');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN ANALYSIS LOOP
+// ════════════════════════════════════════════════════════════
+async function runAnalysis() {
+  const refreshBtn = document.getElementById('refreshBtn');
+  const icon       = document.getElementById('refreshIcon');
+  icon.className   = 'spinning';
+  refreshBtn.disabled = true;
+
+  // Check PST session filter
+  if (CFG.pstOnly && !isPSTTradingSession()) {
+    const pst = getPSTTime();
+    const h   = pst.getHours(), m = pst.getMinutes();
+    document.getElementById('alertReason').textContent =
+      `PST Session filter active — waiting for 17:00–20:00 PKT (now ${h}:${String(m).padStart(2,'0')})`;
+    document.getElementById('alertSub').textContent = 'Disable "PST Session Only" in settings to run outside these hours';
+    document.getElementById('alertDir').textContent  = 'WAIT';
+    icon.className = ''; refreshBtn.disabled = false;
+    return;
+  }
+
+  // Fetch data
+  let data = await fetchLivePrice();
+  if (!data) {
+    // Simulate with realistic base price
+    const base = lastPrice || 2330;
+    data = simulateBars(base, 80);
+    showToast('ℹ️ Using simulated data (API unavailable)');
+  }
+
+  const { bars, currentPrice } = data;
+  if (!bars.length) { icon.className = ''; refreshBtn.disabled = false; return; }
+
+  priceHistory = bars;
+  const closes = bars.map(b => b.close);
+  const atr    = calcATR(bars);
+
+  // Update price display
+  updatePrice(currentPrice, lastPrice || currentPrice);
+  lastPrice = currentPrice;
+
+  // Run analysis
+  const struct  = detectStructure(bars);
+  const wyckoff = detectWyckoff(bars, struct);
+  const vsa     = analyzeVSA(bars);
+  const elder   = elderScreens(bars);
+  const fibData = updateFib(bars, currentPrice) || { inOTE: false, discount: false, midOTE: currentPrice };
+
+  const conf    = scoreConfluence({ struct, wyckoff, vsa, elder, fib: fibData, currentPrice, bars });
+  const tp      = buildTradePlan(conf.dir, currentPrice, atr, struct);
+
+  // Update all UI
+  updateAlert(conf, tp);
+  updateTradePlan(tp);
+  updateIndicators(bars, struct, wyckoff, vsa, elder);
+  updateConfluence(conf);
+  updateStructure(bars);
+  updateKeyLevels(bars, currentPrice);
+  updateAMD();
+  updateLiquidity(bars, struct, currentPrice);
+  updateHeuristics(bars, currentPrice, struct);
+  buildChart(bars);
+
+  // Log signal
+  const pst  = getPSTTime();
+  const timeStr = formatTime(pst) + ' PKT';
+  addAlertLog(conf.dir, currentPrice, conf.score, timeStr);
+
+  if (conf.dir !== 'WAIT' && conf.dir !== currentSignal) {
+    const emoji = conf.dir === 'BUY' ? '🟢' : '🔴';
+    showToast(`${emoji} ${conf.dir} SIGNAL — $${currentPrice.toFixed(2)} | Conf ${conf.score}/6`);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(`XAUUSD ${conf.dir}`, {
+        body: `Price: $${currentPrice.toFixed(2)} | Confluence: ${conf.score}/6`,
+        icon: '🥇'
+      });
+    }
+  }
+  currentSignal = conf.dir;
+
+  icon.className = ''; refreshBtn.disabled = false;
+}
+
+// ════════════════════════════════════════════════════════════
+// COUNTDOWN TIMER
+// ════════════════════════════════════════════════════════════
+function startCountdown() {
+  countdownSec = CFG.refreshSec;
+  const tick = setInterval(() => {
+    countdownSec--;
+    const m = Math.floor(countdownSec / 60);
+    const s = countdownSec % 60;
+    document.getElementById('countdown').textContent = m + ':' + String(s).padStart(2,'0');
+    const pct = (countdownSec / CFG.refreshSec) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    if (countdownSec <= 0) {
+      clearInterval(tick);
+      runAnalysis().then(() => startCountdown());
+    }
+  }, 1000);
+}
+
+function forceRefresh() {
+  countdownSec = CFG.refreshSec;
+  runAnalysis().then(() => {});
+}
+
+// ════════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════════
+function updateSettings() {
+  CFG.balance  = +document.getElementById('sBalance').value || 10000;
+  CFG.riskPct  = +document.getElementById('sRisk').value   || 2;
+  CFG.minConf  = +document.getElementById('sConf').value   || 4;
+  CFG.tp1R     = +document.getElementById('sTP1').value    || 1.5;
+  CFG.tp2R     = +document.getElementById('sTP2').value    || 3.0;
+  CFG.tp3R     = +document.getElementById('sTP3').value    || 5.0;
+}
+
+function toggleSetting(el) {
+  el.classList.toggle('on');
+  const id = el.id;
+  const on = el.classList.contains('on');
+  const map = { tTrailing: 'trailing', tBE: 'breakEven', tPartial: 'partialClose',
+                tFOMO: 'fomoFilter', tNews: 'newsFilter', tSession: 'pstOnly' };
+  if (map[id]) CFG[map[id]] = on;
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+// Ask for notifications
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+// Start clock
+setInterval(updateClock, 1000);
+updateClock();
+
+// Initial load
+document.getElementById('alertReason').textContent = 'Connecting to XAUUSD feed...';
+runAnalysis().then(() => startCountdown());
+</script>
+</body>
+</html>
